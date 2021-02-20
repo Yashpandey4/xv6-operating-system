@@ -14,3 +14,5 @@ kernel
 kernelmemfs
 mkfs
 .gdbinit
+cmake-build-debug
+.idea
