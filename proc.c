@@ -20,6 +20,21 @@ extern void trapret(void);
 
 static void wakeup1(void *chan);
 
+/**
+ * Printer function for Part 2.4 - called from sysproc.c to print all the current running processes
+ */
+void
+get_process_name(void)
+{
+    for(struct proc* p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    {
+        int proc_state = p->state;
+        if(proc_state == UNUSED || proc_state == EMBRYO || proc_state == ZOMBIE)
+            continue;
+        cprintf("pid:%d name:%s\n", p->pid, p->name);
+    }
+}
+
 void
 pinit(void)
 {

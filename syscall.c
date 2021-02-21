@@ -82,6 +82,7 @@ argstr(int n, char **pp)
   return fetchstr(addr, pp);
 }
 
+// System call defs
 extern int sys_chdir(void);
 extern int sys_close(void);
 extern int sys_dup(void);
@@ -103,8 +104,22 @@ extern int sys_unlink(void);
 extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
+// Part 2.2
 extern int sys_toggle(void);
 extern int sys_print_count(void);
+// Part 2.3
+extern int sys_add(void);
+// Part 2.4
+extern int sys_ps(void);
+
+// custom defined utilities
+extern int trace_mode; // 1 - ON, 0 - OFF
+
+// other variables
+// Each system call is associated with an id in syscall.h.
+// Using those as indices, we keep a count of the number of calls.
+int count_command_calls[LEN_SYSCALL];
+
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -128,6 +143,10 @@ static int (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
+[SYS_toggle]  sys_toggle,  // Part 2.2
+[SYS_print_count] sys_print_count,  // Part 2.2
+[SYS_add]     sys_add,  // Part 2.3
+[SYS_ps]      sys_ps,  // Part 2.4
 };
 
 void
@@ -138,6 +157,9 @@ syscall(void)
 
   num = curproc->tf->eax;
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
+    if(trace_mode == 1) // TRACE ON
+        // If Trace is ON, we increase the count of the current command invoked
+        count_command_calls[num]++;
     curproc->tf->eax = syscalls[num]();
   } else {
     cprintf("%d %s: unknown sys call %d\n",
