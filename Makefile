@@ -183,8 +183,8 @@ UPROGS=\
 	_user_toggle\
 	_print_count\
 
-fs.img: mkfs README $(UPROGS)
-	./mkfs fs.img README $(UPROGS)
+fs.img: mkfs README arr $(UPROGS)
+	./mkfs fs.img README arr $(UPROGS)
 
 -include *.d
 
