@@ -124,6 +124,8 @@ char *name_system_call[] = {
         "sys_print_count",
         "sys_add",
         "sys_ps",
+        "sys_send",
+        "sys_recv",
 };
 
 // System Toggle Flag: Defined for 2.1 and 2.2. 1: TOGGLE ON, 2: TOGGLE OFF
@@ -189,4 +191,53 @@ sys_ps(void)
 {
     get_process_name();
     return 0;
+}
+
+
+
+
+
+
+//struct queue_node message_queue[100];
+int queue_size = 0;
+extern int mq1[1000];
+extern int mq2[1000];
+extern void* mq3[1000];
+extern int mq4[1000];
+
+
+
+/*
+* Function Implementation for Part 3.1 of the assignement
+* sys_send sends the message to the buffer
+* sys_recv recvs it from there..
+*/
+int
+sys_send(int sender_pid,int rec_pid,void* msg)
+{
+  argint(0,&sender_pid);
+  argint(1,&rec_pid);
+  mq1[queue_size] = sender_pid ;
+  mq2[queue_size] = rec_pid;
+  mq3[queue_size] = msg;
+  mq4[queue_size] = 0;
+  queue_size = queue_size + 1;
+  //cprintf("\nPARENT EXITED!!");
+  return 0;
+}
+
+
+int
+sys_recv(void *msg)
+{
+  int mypid = sys_getpid();
+  //cprintf("\nRecieved pid: %d",mypid);
+  for ( int i = 0 ; i<queue_size ; i++){
+        if(mq2[i]==mypid && mq4[i]==0){
+                  msg = (char *)mq3[i];
+                  mq4[i]=1;
+                  return 0;
+          }
+  }
+  return (-1);
 }

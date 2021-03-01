@@ -121,6 +121,30 @@ extern int trace_mode; // 1 - ON, 0 - OFF
 int count_command_calls[LEN_SYSCALL];
 
 
+//q3
+extern int sys_send(void);              //UNCOMMENT?
+extern int sys_recv(void);                      //UNCOMMENT?
+
+/*
+// queue implementation
+struct queue_node{              // Correct implementation? correct file??
+        int sender;
+        int recver;
+        void* message;
+        int done;
+};
+extern struct queue_node message_queue[1000];    // queue size ?
+extern int queue_size;
+*/
+int mq1[1000];
+int mq2[1000];
+void* mq3[1000];
+int mq4[1000];
+extern int queue_size;
+
+
+
+
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
 [SYS_exit]    sys_exit,
@@ -147,6 +171,8 @@ static int (*syscalls[])(void) = {
 [SYS_print_count] sys_print_count,  // Part 2.2
 [SYS_add]     sys_add,  // Part 2.3
 [SYS_ps]      sys_ps,  // Part 2.4
+[SYS_send]    sys_send, // Part 3.1
+[SYS_recv]    sys_recv, // Part 3.1
 };
 
 void
