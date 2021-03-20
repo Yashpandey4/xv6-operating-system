@@ -9,6 +9,7 @@ main(void)
 	printf(1,"This is for test \n" );
 	int cid = fork();
 	if(cid!=0){
+		wait();
 		print_count();
 		toggle();		
 	}

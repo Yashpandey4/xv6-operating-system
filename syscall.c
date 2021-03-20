@@ -138,7 +138,7 @@ extern int queue_size;
 */
 int mq1[1000];
 int mq2[1000];
-void* mq3[1000];
+char* mq3[1000];
 int mq4[1000];
 extern int queue_size;
 

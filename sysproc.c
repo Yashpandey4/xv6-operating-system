@@ -202,7 +202,8 @@ sys_ps(void)
 int queue_size = 0;
 extern int mq1[1000];
 extern int mq2[1000];
-extern void* mq3[1000];
+extern char* mq3[1000];
+//extern void* mq3[1000];
 extern int mq4[1000];
 
 
@@ -217,9 +218,13 @@ sys_send(int sender_pid,int rec_pid,void* msg)
 {
   argint(0,&sender_pid);
   argint(1,&rec_pid);
+  //argint(2,&msg);
+  argptr (2 , (void*)&msg , 8 );
   mq1[queue_size] = sender_pid ;
   mq2[queue_size] = rec_pid;
-  mq3[queue_size] = msg;
+  mq3[queue_size] = (char*)msg;
+//  cprintf("printing from sysproc.c and msg is: %s \n", *mq3[queue_size] );
+//  cprintf("printing from sysproc.c and msg is: %s \n", (char *)msg );
   mq4[queue_size] = 0;
   queue_size = queue_size + 1;
   //cprintf("\nPARENT EXITED!!");
@@ -234,7 +239,9 @@ sys_recv(void *msg)
   //cprintf("\nRecieved pid: %d",mypid);
   for ( int i = 0 ; i<queue_size ; i++){
         if(mq2[i]==mypid && mq4[i]==0){
-                  msg = (char *)mq3[i];
+//        	  argptr(0, &mq3[i],8);
+cprintf("printing from sysproc.c and msg is: %s \n", *mq3[0] );
+                  msg = mq3[i];
                   mq4[i]=1;
                   return 0;
           }

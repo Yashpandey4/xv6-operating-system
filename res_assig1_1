@@ -1,4 +1,0 @@
-sys_exit 1
-sys_mknod 18
-sys_print_count 1
-sys_wait 1
