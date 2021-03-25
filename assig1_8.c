@@ -1,6 +1,17 @@
+//#include <lzma.h>
 #include "types.h"
 #include "stat.h"
 #include "user.h"
+
+
+
+#define NUM_PROCS 7
+
+char *encode_message(int sum);
+
+int extract(char *message);
+
+
 
 int
 main(int argc, char *argv[])
@@ -35,13 +46,7 @@ main(int argc, char *argv[])
   	
   	
   	
-  	
-  	
-  	
-  	
-  	
-  	
- /* 	
+
 
 	int master = getpid();
 	int slave[8];
@@ -72,8 +77,6 @@ main(int argc, char *argv[])
 	}
 
 
-
-*/
 
 
 
