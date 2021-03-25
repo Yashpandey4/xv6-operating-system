@@ -41,7 +41,7 @@ main(int argc, char *argv[])
   	
   	
   	
-  	
+ /* 	
 
 	int master = getpid();
 	int slave[8];
@@ -73,7 +73,7 @@ main(int argc, char *argv[])
 
 
 
-
+*/
 
 
 
