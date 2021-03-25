@@ -6,10 +6,10 @@ make
 
 # make qemu 
 echo "Running..1"
-./test_assig1.sh assig1_1|grep -i 'sys_'|sed 's/$ //g'|sort > res_assig1_1
+./test_assig1.sh assig1_1|grep -i 'sys_'|grep -v 'exit\|wait'|sed 's/$ //g'|sort > res_assig1_1
 
 echo "Running..2"
-./test_assig1.sh assig1_2|grep -i 'sys_'|sed 's/$ //g'|sort > res_assig1_2
+./test_assig1.sh assig1_2|grep -i 'sys_'|grep -v 'exit\|wait'|sed 's/$ //g'|sort > res_assig1_2
 
 echo "Running..3"
 ./test_assig1.sh assig1_3|grep -i Sum|sed 's/$ //g'|sort > res_assig1_3

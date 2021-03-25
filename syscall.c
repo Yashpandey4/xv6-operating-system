@@ -121,6 +121,33 @@ extern int trace_mode; // 1 - ON, 0 - OFF
 int count_command_calls[LEN_SYSCALL];
 
 
+//q3
+extern int sys_send(void);              //UNCOMMENT?
+extern int sys_recv(void);                      //UNCOMMENT?
+
+/*
+// queue implementation
+struct queue_node{              // Correct implementation? correct file??
+        int sender;
+        int recver;
+        void* message;
+        int done;
+};
+extern struct queue_node message_queue[1000];    // queue size ?
+extern int queue_size;
+*/
+int mq1[1000];
+int mq2[1000];
+char mq3[1000][8];
+int mq4[1000];
+extern int queue_size;
+extern int queue_limit;
+extern int lock;
+extern int MSGSIZE;
+//extern int begin;
+
+
+
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
 [SYS_exit]    sys_exit,
@@ -147,6 +174,8 @@ static int (*syscalls[])(void) = {
 [SYS_print_count] sys_print_count,  // Part 2.2
 [SYS_add]     sys_add,  // Part 2.3
 [SYS_ps]      sys_ps,  // Part 2.4
+[SYS_send]    sys_send, // Part 3.1
+[SYS_recv]    sys_recv, // Part 3.1
 };
 
 void
@@ -157,10 +186,14 @@ syscall(void)
 
   num = curproc->tf->eax;
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
-    if(trace_mode == 1) // TRACE ON
-        // If Trace is ON, we increase the count of the current command invoked
-        count_command_calls[num]++;
+  
     curproc->tf->eax = syscalls[num]();
+    
+    if(trace_mode == 1) {// TRACE ON
+        // If Trace is ON, we increase the count of the current command invoked
+        count_command_calls[num-1]++;
+     }
+     
   } else {
     cprintf("%d %s: unknown sys call %d\n",
             curproc->pid, curproc->name, num);

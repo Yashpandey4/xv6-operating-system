@@ -12,5 +12,6 @@ main(void)
 		print_count();
 		toggle();		
 	}
+	wait();
 	exit();
 }
