@@ -160,7 +160,7 @@ sys_toggle(void)
 int
 sys_print_count(void)
 {
-    for(int i=1; i<LEN_SYSCALL; i++)
+    for(int i=0; i<LEN_SYSCALL; i++)
     {
         if(count_command_calls[i]>0)
             cprintf("%s %d\n", name_system_call[i], count_command_calls[i]);
@@ -199,12 +199,22 @@ sys_ps(void)
 
 
 //struct queue_node message_queue[100];
+int MSGSIZE=8;
 int queue_size = 0;
-extern int mq1[1000];
-extern int mq2[1000];
-extern char* mq3[1000];
+int queue_limit = 1000;
+int lock = 0;
+int mq1[1000];
+int mq2[1000];
+char mq3[1000][8];
 //extern void* mq3[1000];
-extern int mq4[1000];
+int mq4[1000] = {};
+//bool begin = true;
+
+
+
+
+
+
 
 
 
@@ -216,35 +226,109 @@ extern int mq4[1000];
 int
 sys_send(int sender_pid,int rec_pid,void* msg)
 {
+/*
+	for (int i=0; i<10; i++){
+		cprintf("element %d is: %d\n",i+1,mq4[i]=0);
+	}
+*/
+
+/*
+	if(begin){
+		for(int i=0;i<queue_limit;i++){
+			mq4[i] = 0;
+		}
+		begin = false;
+	}
+*/
+
+  while(lock>0){}
+  lock=1;
+
+  char* m =(char*) msg;
   argint(0,&sender_pid);
   argint(1,&rec_pid);
-  //argint(2,&msg);
-  argptr (2 , (void*)&msg , 8 );
-  mq1[queue_size] = sender_pid ;
-  mq2[queue_size] = rec_pid;
-  mq3[queue_size] = (char*)msg;
-//  cprintf("printing from sysproc.c and msg is: %s \n", *mq3[queue_size] );
-//  cprintf("printing from sysproc.c and msg is: %s \n", (char *)msg );
-  mq4[queue_size] = 0;
-  queue_size = queue_size + 1;
-  //cprintf("\nPARENT EXITED!!");
+//  argptr (2 , (char**)msg , 8);
+//  argptr(2,(void *)&msg,8);
+  argptr(2,(void*)&m,MSGSIZE);
+  
+  
+  int index = -1;
+  for(int i=0; i<1000 ; i++){
+  	if( mq4[i] == 0 ){
+  		index = i;
+  		break;
+  	}
+  }
+  if( index<0 ){
+  	lock = 0;
+  	return -1;
+  }
+  
+  for(int i=0; i<MSGSIZE; i++){
+  	mq3[index][i] = m[i];
+//  	cprintf("message sent: %s\n:",mq3[index][i]);
+  	if(m[i] == '\0'){
+  		break;
+  	}
+  }
+  //cprintf("message sent: %s\n",mq3[0]);
+  
+  mq4[index] = 1;
+  mq1[index] = sender_pid;
+  mq2[index] = rec_pid;
+  
+  lock = 0;
   return 0;
+  
 }
 
 
 int
 sys_recv(void *msg)
 {
+
+	
+	
   int mypid = sys_getpid();
-  //cprintf("\nRecieved pid: %d",mypid);
-  for ( int i = 0 ; i<queue_size ; i++){
-        if(mq2[i]==mypid && mq4[i]==0){
-//        	  argptr(0, &mq3[i],8);
-cprintf("printing from sysproc.c and msg is: %s \n", *mq3[0] );
-                  msg = mq3[i];
-                  mq4[i]=1;
-                  return 0;
-          }
-  }
-  return (-1);
+  char* m =(char*) msg;
+	argptr(0,(void*)&m, 8);
+	
+	int index = -1;
+	while(index<0){
+		for(int i =0 ; i<1000; i++){
+			if(mypid == mq2[i] && mq4[i]==1){
+			  index = i;
+			  break;
+			}
+		}
+	}
+	
+	if(index<0){
+		lock = 0;
+		return -1;
+	}
+	
+	while (lock>0){}
+	
+	lock = 1;
+	
+	//cprintf("index is %d\n",index);
+	//cprintf("message sent in rev: %s\n",mq3[0]);	
+	
+	for ( int i = 0 ; i<MSGSIZE ; i++){
+		m[i] = mq3[index][i];
+//		cprintf("msg stored is %s\n",m[i]);
+		if(m[i]=='\0'){
+			break;
+		}
+	}
+	//cprintf("message sent in rev: %s\n",m);	
+	//msg = m;
+	mq1[index] = 0;
+	mq2[index] = 0;
+	mq4[index] = 0;
+	lock = 0;
+	
+  return (0);  
+  
 }

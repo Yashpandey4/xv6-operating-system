@@ -1,13 +1,6 @@
-#include <lzma.h>
 #include "types.h"
 #include "stat.h"
 #include "user.h"
-
-#define NUM_PROCS 7
-
-char *encode_message(int sum);
-
-int extract(char *message);
 
 int
 main(int argc, char *argv[])
@@ -22,7 +15,6 @@ main(int argc, char *argv[])
 	printf(1,"Type is %d and filename is %s\n",type, filename);
 
 	int tot_sum = 0;	
-	float variance = 0.0;
 
 	int size=1000;
 	short arr[size];
@@ -38,34 +30,54 @@ main(int argc, char *argv[])
   	printf(1,"first elem %d\n", arr[0]);
   
   	//----FILL THE CODE HERE for unicast sum
+  	
+  	
+  	
+  	
+  	
+  	
+  	
+  	
+  	
+  	
+  	
+  	
 
-    int master = getpid();
-    int slave[8];
-    for(int i=0; i<NUM_PROCS; ++i)
-    {
-        slave[i] = fork();
-        if(slave[i] == 0)
-        {
-            int sum = 0;
-            int start = size/NUM_PROCS * i;
-            int end = i == NUM_PROCS - 1 ? size : size/NUM_PROCS * (i+1);
-            for(int j = start; j < end; j++)
-            {
-                sum += arr[j];
-            }
-            char *message = encode_message(sum);
-            send(getpid(), master, message);
-            exit();
-        }
-    }
-    for(int i=0; i<NUM_PROCS; ++i)
-    {
-        char *message = (char *)malloc(8);
-        recv(message);
-        int sum = 0;
-        sum = extract(message);
-        tot_sum += sum;
-    }
+	int master = getpid();
+	int slave[8];
+	for(int i=0; i<NUM_PROCS; ++i)
+	{
+	slave[i] = fork();
+	if(slave[i] == 0)
+	{
+	    int sum = 0;
+	    int start = size/NUM_PROCS * i;
+	    int end = i == NUM_PROCS - 1 ? size : size/NUM_PROCS * (i+1);
+	    for(int j = start; j < end; j++)
+	    {
+		sum += arr[j];
+	    }
+	    char *message = encode_message(sum);
+	    send(getpid(), master, message);
+	    exit();
+	}
+	}
+	for(int i=0; i<NUM_PROCS; ++i)
+	{
+	char *message = (char *)malloc(8);
+	recv(message);
+	int sum = 0;
+	sum = extract(message);
+	tot_sum += sum;
+	}
+
+
+
+
+
+
+
+
 
   	//------------------
 
@@ -74,6 +86,7 @@ main(int argc, char *argv[])
 	}
 	exit();
 }
+
 
 /**
  * This function extracts the integer value of the message recieved in the string form

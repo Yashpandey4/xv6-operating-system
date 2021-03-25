@@ -190,6 +190,7 @@ UPROGS=\
 	_assig1_5\
 	_assig1_6\
 	_assig1_7\
+	_assig1_8\
 
 fs.img: mkfs README arr $(UPROGS)
 	./mkfs fs.img README arr $(UPROGS)

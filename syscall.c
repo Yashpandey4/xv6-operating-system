@@ -138,10 +138,13 @@ extern int queue_size;
 */
 int mq1[1000];
 int mq2[1000];
-char* mq3[1000];
+char mq3[1000][8];
 int mq4[1000];
 extern int queue_size;
-
+extern int queue_limit;
+extern int lock;
+extern int MSGSIZE;
+//extern int begin;
 
 
 
@@ -183,10 +186,14 @@ syscall(void)
 
   num = curproc->tf->eax;
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
-    if(trace_mode == 1) // TRACE ON
-        // If Trace is ON, we increase the count of the current command invoked
-        count_command_calls[num]++;
+  
     curproc->tf->eax = syscalls[num]();
+    
+    if(trace_mode == 1) {// TRACE ON
+        // If Trace is ON, we increase the count of the current command invoked
+        count_command_calls[num-1]++;
+     }
+     
   } else {
     cprintf("%d %s: unknown sys call %d\n",
             curproc->pid, curproc->name, num);
