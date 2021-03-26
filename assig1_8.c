@@ -41,44 +41,41 @@ main(int argc, char *argv[])
   
   	//----FILL THE CODE HERE for unicast sum
   	
-  	
-  	
-  	
-  	
 
 
 	int master = getpid();
 	int slave[8];
 	for(int i=0; i<NUM_PROCS; ++i)
 	{
-	slave[i] = fork();
-	if(slave[i] == 0)
-	{
-	    int sum = 0;
-	    int start = size/NUM_PROCS * i;
-	    int end = i == NUM_PROCS - 1 ? size : size/NUM_PROCS * (i+1);
-	    for(int j = start; j < end; j++)
-	    {
-		sum += arr[j];
-	    }
-	    char *message = encode_message(sum);
-	    send(getpid(), master, message);
-	    exit();
-	}
+		slave[i] = fork();
+		if(slave[i] == 0)
+		{
+		    int sum = 0;
+		    int start = size/NUM_PROCS * i;
+		    int end = i == NUM_PROCS - 1 ? size : size/NUM_PROCS * (i+1);
+		    for(int j = start; j < end; j++)
+		    {
+			sum += arr[j];
+		    }
+		    //printf(0,"master is : %d\n",master);
+		    char *message = encode_message(sum);
+		    send(getpid(), master, message);
+		    exit();
+		}
+		else{
+			wait();
+		}
 	}
 	for(int i=0; i<NUM_PROCS; ++i)
 	{
-	char *message = (char *)malloc(8);
-	recv(message);
-	int sum = 0;
-	sum = extract(message);
-	tot_sum += sum;
+		//printf(0,"Process pid is: %d\n",getpid());
+		char *message = (char *)malloc(8);
+		recv(message);
+		//printf(0,"extracted msg: %s\n", message);
+		int sum = 0;
+		sum = extract(message);
+		tot_sum += sum;
 	}
-
-
-
-
-
 
 
   	//------------------
@@ -99,8 +96,9 @@ int extract(char *message) {
     int res = 0;
     int idx = -1;
     char *msg = (char *)message;
-    while(*(msg + idx) != '\0')
+    while(*(msg + idx +1) != '\0')
         idx += 1;
+    //printf(0,"%s\n", msg);
     while(idx >= 0)
     {
         res *= 10;

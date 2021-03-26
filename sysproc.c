@@ -258,7 +258,6 @@ sys_send(int sender_pid,int rec_pid,void* msg)
   	}
   }
   //cprintf("message sent: %s\n",mq3[0]);
-  
   mq4[index] = 1;
   mq1[index] = sender_pid;
   mq2[index] = rec_pid;
