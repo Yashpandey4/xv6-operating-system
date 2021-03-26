@@ -206,54 +206,40 @@ int lock = 0;
 int mq1[1000];
 int mq2[1000];
 char mq3[1000][8];
-//extern void* mq3[1000];
 int mq4[1000] = {};
-//bool begin = true;
+int firstrun = 1;
+int nextnode[1000];
+
+int earliest = -1;
+int latest = -1;
 
 
 
-
-
-
-
-
-
-/*
-* Function Implementation for Part 3.1 of the assignement
-* sys_send sends the message to the buffer
-* sys_recv recvs it from there..
-*/
 int
 sys_send(int sender_pid,int rec_pid,void* msg)
 {
-/*
-	for (int i=0; i<10; i++){
-		cprintf("element %d is: %d\n",i+1,mq4[i]=0);
-	}
-*/
+  char* m =(char*) msg;
+  argint(0,&sender_pid);
+  argint(1,&rec_pid);
+  argptr(2,(void*)&m,MSGSIZE);
 
-/*
-	if(begin){
-		for(int i=0;i<queue_limit;i++){
-			mq4[i] = 0;
-		}
-		begin = false;
-	}
-*/
+  if(firstrun==1){
+    for(int i=0;i<1000;i++){
+      nextnode[i] = i+1;
+    }
+    firstrun = 0;
+  }
 
   while(lock>0){}
   lock=1;
 
-  char* m =(char*) msg;
-  argint(0,&sender_pid);
-  argint(1,&rec_pid);
-//  argptr (2 , (char**)msg , 8);
-//  argptr(2,(void *)&msg,8);
-  argptr(2,(void*)&m,MSGSIZE);
   
   
   int index = -1;
   for(int i=0; i<1000 ; i++){
+    // if(queue_size==0){
+    //   mq
+    // }
   	if( mq4[i] == 0 ){
   		index = i;
   		break;

@@ -144,7 +144,10 @@ extern int queue_size;
 extern int queue_limit;
 extern int lock;
 extern int MSGSIZE;
-//extern int begin;
+extern int firstrun;
+extern int earliest;
+extern int latest;
+extern int nextnode[1000];
 
 
 

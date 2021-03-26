@@ -52,6 +52,7 @@ endif
 
 # If the makefile can't find QEMU, specify its path here
 # QEMU = qemu-system-i386
+
 # Try to infer the correct QEMU
 ifndef QEMU
 QEMU = $(shell if which qemu > /dev/null; \
@@ -180,9 +181,6 @@ UPROGS=\
 	_usertests\
 	_wc\
 	_zombie\
-	_user_toggle\
-	_print_count\
-	_add_test\
 	_assig1_1\
 	_assig1_2\
 	_assig1_3\
@@ -191,6 +189,7 @@ UPROGS=\
 	_assig1_6\
 	_assig1_7\
 	_assig1_8\
+
 
 fs.img: mkfs README arr $(UPROGS)
 	./mkfs fs.img README arr $(UPROGS)
@@ -234,7 +233,7 @@ QEMUOPTS = -drive file=fs.img,index=1,media=disk,format=raw -drive file=xv6.img,
 qemu: fs.img xv6.img
 	$(QEMU) -serial mon:stdio $(QEMUOPTS)
 
-qemu-memfs: xv6memfs.img
+qemu-memfs: xv6memfs.img_add_test
 	$(QEMU) -drive file=xv6memfs.img,index=0,media=disk,format=raw -smp $(CPUS) -m 256
 
 qemu-nox: fs.img xv6.img
@@ -261,7 +260,7 @@ EXTRA=\
 	user_toggle.c print_count.c\
 	mkfs.c ulib.c user.h cat.c echo.c forktest.c grep.c kill.c\
 	ln.c ls.c mkdir.c rm.c stressfs.c usertests.c wc.c zombie.c\
-	printf.c umalloc.c\
+	printf.c umalloc.c assig1_1.c assig1_2.c assig1_3.c assig1_4.c assig1_5.c assig1_6.c assig1_7.c assig1_8.c\
 	README dot-bochsrc *.pl toc.* runoff runoff1 runoff.list\
 	.gdbinit.tmpl gdbutil\
 
