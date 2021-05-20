@@ -11,6 +11,7 @@
 // Interrupt descriptor table (shared by all CPUs).
 struct gatedesc idt[256];
 extern uint vectors[];  // in vectors.S: array of 256 entry pointers
+extern void updateLap();
 struct spinlock tickslock;
 uint ticks;
 
@@ -53,6 +54,9 @@ trap(struct trapframe *tf)
       ticks++;
       wakeup(&ticks);
       release(&tickslock);
+    #if LAP
+            updateLap(); //defined in proc.c due to ptable usage
+    #endif
     }
     lapiceoi();
     break;
@@ -77,6 +81,13 @@ trap(struct trapframe *tf)
             cpuid(), tf->cs, tf->eip);
     lapiceoi();
     break;
+
+  case T_PGFLT:
+      if (myproc() != 0 && (tf->cs&3) == 3 &&pageIsInFile(rcr2(), myproc()->pgdir)){
+          if (getPageFromFile(rcr2())){
+              break;
+          }
+      }
 
   //PAGEBREAK: 13
   default:

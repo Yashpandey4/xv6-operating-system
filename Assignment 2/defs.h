@@ -52,6 +52,13 @@ struct inode*   nameiparent(char*, char*);
 int             readi(struct inode*, char*, uint, uint);
 void            stati(struct inode*, struct stat*);
 int             writei(struct inode*, char*, uint, uint);
+int				createSwapFile(struct proc* p);
+int				readFromSwapFile(struct proc * p, char* buffer, uint placeOnFile, uint size);
+int				writeToSwapFile(struct proc* p, char* buffer, uint placeOnFile, uint size);
+int				removeSwapFile(struct proc* p);
+int 			writePageToFile(struct proc * p, int pageVaddr, pde_t *pgdir);
+int 			readPageFromFile(struct proc * p, int ramCtrlrIndex, int userPageVAddr, char* buff);
+void 			copySwapFile(struct proc* fromP, struct proc* toP);
 
 // ide.c
 void            ideinit(void);
@@ -68,6 +75,8 @@ char*           kalloc(void);
 void            kfree(char*);
 void            kinit1(void*, void*);
 void            kinit2(void*, void*);
+int 			getFreePages();
+int 			getTotalPages();
 
 // kbd.c
 void            kbdintr(void);
@@ -123,6 +132,10 @@ void            yield(void);
 
 // swtch.S
 void            swtch(struct context**, struct context*);
+
+// sysfile
+struct inode*	create(char *path, short type, short major, short minor);
+int				isdirempty(struct inode *dp);
 
 // spinlock.c
 void            acquire(struct spinlock*);
@@ -185,6 +198,12 @@ void            switchuvm(struct proc*);
 void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
+int 			pageIsInFile(int vAddr, pde_t *pgdir);
+int 			getPageFromFile(int vAddr);
+void			updateAccessCounters();
+void			printRamCtrlr(); //debugging
+void 			printFileCtrlr();	//debugging
+int             isNONEpolicy();
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

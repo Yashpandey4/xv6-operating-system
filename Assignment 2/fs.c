@@ -668,3 +668,234 @@ nameiparent(char *path, char *name)
 {
   return namex(path, 1, name);
 }
+
+#include "fcntl.h"
+#define DIGITS 14
+
+/**
+ * Convert integer to string
+ * @param i
+ * @param b
+ * @return
+ */
+char* itoa(int i, char b[]){
+    char const digit[] = "0123456789";
+    char* p = b;
+    if(i<0){
+        *p++ = '-';
+        i *= -1;
+    }
+    int shifter = i;
+    do{ //Move to where representation ends
+        ++p;
+        shifter = shifter/10;
+    }while(shifter);
+    *p = '\0';
+    do{ //Move back, inserting digits as u go
+        *--p = digit[i%10];
+        i = i/10;
+    }while(i);
+    return b;
+}
+
+/**
+ * remove swap file of proc p
+ * @param p
+ * @return
+ */
+int removeSwapFile(struct proc* p){
+    char path[DIGITS];
+    memmove(path,"/.swap", 6);
+    itoa(p->pid, path+ 6);
+
+    struct inode *ip, *dp;
+    struct dirent de;
+    char name[DIRSIZ];
+    uint off;
+
+    if(0 == p->swapFile)
+    {
+        return -1;
+    }
+    fileclose(p->swapFile);
+
+    begin_op();
+    if((dp = nameiparent(path, name)) == 0)
+    {
+        end_op();
+        return -1;
+    }
+
+    ilock(dp);
+
+    if(namecmp(name, ".") == 0 || namecmp(name, "..") == 0)
+        goto bad;
+
+    if((ip = dirlookup(dp, name, &off)) == 0)
+        goto bad;
+    ilock(ip);
+
+    if(ip->nlink < 1)
+        panic("unlink: nlink < 1");
+    if(ip->type == T_DIR && !isdirempty(ip)){
+        iunlockput(ip);
+        goto bad;
+    }
+
+    memset(&de, 0, sizeof(de));
+    if(writei(dp, (char*)&de, off, sizeof(de)) != sizeof(de))
+        panic("unlink: writei");
+    if(ip->type == T_DIR){
+        dp->nlink--;
+        iupdate(dp);
+    }
+    iunlockput(dp);
+
+    ip->nlink--;
+    iupdate(ip);
+    iunlockput(ip);
+
+    end_op();
+
+    return 0;
+
+    bad:
+    iunlockput(dp);
+    end_op();
+    return -1;
+
+}
+
+/**
+ * return as sys_read (-1 when error)
+ * @param p
+ * @param buffer
+ * @param placeOnFile
+ * @param size
+ * @return
+ */
+int readFromSwapFile(struct proc * p, char* buffer, uint placeOnFile, uint size){
+    p->swapFile->off = placeOnFile;
+    return fileread(p->swapFile, buffer,  size);
+}
+
+/**
+ * return as sys_write (-1 when error)
+ * @param p
+ * @param buffer
+ * @param placeOnFile
+ * @param size
+ * @return
+ */
+int writeToSwapFile(struct proc * p, char* buffer, uint placeOnFile, uint size){
+    p->swapFile->off = placeOnFile;
+    return filewrite(p->swapFile, buffer, size);
+}
+
+/**
+ *
+ * @param p
+ * @return
+ */
+int getFreeSlot(struct proc * p) {
+    int maxStructCount = (MAX_TOTAL_PAGES - MAX_PYSC_PAGES);
+    int i;
+    for (i = 0; i < maxStructCount; i++) {
+        if (p->fileCtrlr[i].state == NOTUSED)
+            return i;
+    }
+    return -1;
+}
+
+/**
+ *
+ * @param p
+ * @param userPageVAddr
+ * @param pgdir
+ * @return
+ */
+int writePageToFile(struct proc * p, int userPageVAddr, pde_t *pgdir) {
+    int freePlace = getFreeSlot(p);
+    int retInt = writeToSwapFile(p, (char*)userPageVAddr, PGSIZE*freePlace, PGSIZE);
+    if (retInt == -1)
+        return -1;
+    p->fileCtrlr[freePlace].state = USED;
+    p->fileCtrlr[freePlace].userPageVAddr = userPageVAddr;
+    p->fileCtrlr[freePlace].pgdir = pgdir;
+    p->fileCtrlr[freePlace].accessCount = 0;
+    p->fileCtrlr[freePlace].loadOrder = 0;
+    return retInt;
+}
+
+/**
+ *
+ * @param p
+ * @param ramCtrlrIndex
+ * @param userPageVAddr
+ * @param buff
+ * @return
+ */
+int readPageFromFile(struct proc * p, int ramCtrlrIndex, int userPageVAddr, char* buff) {
+    int maxStructCount = (MAX_TOTAL_PAGES - MAX_PYSC_PAGES);
+    int i;
+    int retInt;
+    for (i = 0; i < maxStructCount; i++) {
+        if (p->fileCtrlr[i].userPageVAddr == userPageVAddr) {
+            retInt = readFromSwapFile(p, buff, i*PGSIZE, PGSIZE);
+            if (retInt == -1)
+                break; //error in read
+            p->ramCtrlr[ramCtrlrIndex] = p->fileCtrlr[i];
+            p->ramCtrlr[ramCtrlrIndex].loadOrder = myproc()->loadOrderCounter++;
+            p->fileCtrlr[i].state = NOTUSED;
+            return retInt;
+        }
+    }
+    return -1;
+}
+
+/**
+ *
+ * @param p
+ * @return 0 on success
+ */
+int createSwapFile(struct proc* p){
+
+    char path[DIGITS];
+    memmove(path,"/.swap", 6);
+    itoa(p->pid, path+ 6);
+
+    begin_op();
+    struct inode * in = create(path, T_FILE, 0, 0);
+    iunlock(in);
+
+    p->swapFile = filealloc();
+    if (p->swapFile == 0)
+        panic("no slot for files on /store");
+    p->swapFile->ip = in;
+    p->swapFile->type = FD_INODE;
+    p->swapFile->off = 0;
+    p->swapFile->readable = O_WRONLY;
+    p->swapFile->writable = O_RDWR;
+    end_op();
+    return 0;
+}
+
+/**
+ *
+ * @param fromP
+ * @param toP
+ */
+void copySwapFile(struct proc* fromP, struct proc* toP){
+    if (fromP->pid < 3)
+        return;
+    char buff[PGSIZE];
+    int i;
+    for (i = 0; i < MAX_TOTAL_PAGES-MAX_PYSC_PAGES; i++){
+        if (myproc()->fileCtrlr[i].state == USED){
+            if (readFromSwapFile(fromP, buff, PGSIZE*i, PGSIZE) != PGSIZE)
+                panic("CopySwapFile error");
+            if (writeToSwapFile(toP, buff, PGSIZE*i, PGSIZE) != PGSIZE)
+                panic("CopySwapFile error");
+        }
+    }
+}

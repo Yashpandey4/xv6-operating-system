@@ -94,7 +94,9 @@ struct segdesc {
 #define PTE_P           0x001   // Present
 #define PTE_W           0x002   // Writeable
 #define PTE_U           0x004   // User
+#define PTE_A           0x020   // Accessed
 #define PTE_PS          0x080   // Page Size
+#define PTE_PG          0x200   // Paged out to secondary storage
 
 // Address in page table or page directory entry
 #define PTE_ADDR(pte)   ((uint)(pte) & ~0xFFF)
@@ -102,6 +104,9 @@ struct segdesc {
 
 #ifndef __ASSEMBLER__
 typedef uint pte_t;
+
+#define MAX_PYSC_PAGES 15
+#define MAX_TOTAL_PAGES 30
 
 // Task state segment format
 struct taskstate {

@@ -26,6 +26,16 @@ pinit(void)
   initlock(&ptable.lock, "ptable");
 }
 
+/**
+ *
+ * @param p
+ */
+void initSwapStructs(struct proc* p) {
+    int i;
+    for (i = 0; i < MAX_TOTAL_PAGES - MAX_PYSC_PAGES; i++)
+        p->fileCtrlr[i].state = NOTUSED;
+}
+
 // Must be called with interrupts disabled
 int
 cpuid() {
@@ -101,8 +111,15 @@ found:
   // Leave room for trap frame.
   sp -= sizeof *p->tf;
   p->tf = (struct trapframe*)sp;
+  p->loadOrderCounter = 0;
+  p->faultCounter = 0;
+  p->countOfPagedOut = 0;
 
-  // Set up new context to start executing at forkret,
+  if(p->pid > 2)
+    createSwapFile(p);
+
+
+    // Set up new context to start executing at forkret,
   // which returns to trapret.
   sp -= 4;
   *(uint*)sp = (uint)trapret;
@@ -197,6 +214,20 @@ fork(void)
     return -1;
   }
   np->sz = curproc->sz;
+
+if (curproc->pid > 2){
+    copySwapFile(curproc, np);
+    np->loadOrderCounter = curproc->loadOrderCounter;
+    for (i = 0; i < MAX_PYSC_PAGES; i++){
+        np->ramCtrlr[i] = curproc->ramCtrlr[i]; //deep copies ramCtrlr list
+        np->ramCtrlr[i].pgdir = np->pgdir;  //replace parent pgdir with child new pgdir
+    }
+    for (i = 0; i < MAX_TOTAL_PAGES-MAX_PYSC_PAGES; i++){
+        np->fileCtrlr[i] = curproc->fileCtrlr[i]; //deep copies fileCtrlr list
+        np->fileCtrlr[i].pgdir = np->pgdir;   //replace parent pgdir with child new pgdir
+    }
+}
+
   np->parent = curproc;
   *np->tf = *curproc->tf;
 
@@ -211,7 +242,8 @@ fork(void)
   safestrcpy(np->name, curproc->name, sizeof(curproc->name));
 
   pid = np->pid;
-
+    np->faultCounter = 0;
+    np->countOfPagedOut = 0;
   acquire(&ptable.lock);
 
   np->state = RUNNABLE;
@@ -241,7 +273,8 @@ exit(void)
       curproc->ofile[fd] = 0;
     }
   }
-
+    if (curproc->pid > 2)
+        removeSwapFile(curproc);
   begin_op();
   iput(curproc->cwd);
   end_op();
@@ -263,6 +296,9 @@ exit(void)
 
   // Jump into the scheduler, never to return.
   curproc->state = ZOMBIE;
+#if TRUE
+    procdump();
+#endif
   sched();
   panic("zombie exit");
 }
@@ -291,6 +327,11 @@ wait(void)
         p->kstack = 0;
         freevm(p->pgdir);
         p->pid = 0;
+          int i;
+          for (i = 0; i < MAX_PYSC_PAGES; i++)
+              p->ramCtrlr[i].state = NOTUSED;
+          for (i = 0; i < MAX_TOTAL_PAGES-MAX_PYSC_PAGES; i++)
+              p->fileCtrlr[i].state = NOTUSED;
         p->parent = 0;
         p->name[0] = 0;
         p->killed = 0;
@@ -496,6 +537,36 @@ kill(int pid)
   return -1;
 }
 
+/**
+ *
+ * @param p
+ * @return
+ */
+int getPagedOutAmout(struct proc* p){
+
+    int i;
+    int amout = 0;
+
+    for (i=0;i < MAX_PYSC_PAGES; i++){
+        if (p->fileCtrlr[i].state == USED)
+            amout++;
+    }
+    return amout;
+}
+
+/**
+ *
+ */
+void updateLap(){
+    struct proc *p;
+    acquire(&ptable.lock);
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+        if (p->pid > 2 && p->state > 1 && p->state < 5) //proc is either running, runnable or sleeping
+            updateAccessCounters(p); //implemented in vm.c
+    }
+    release(&ptable.lock);
+}
+
 //PAGEBREAK: 36
 // Print a process listing to console.  For debugging.
 // Runs when user types ^P on console.
@@ -515,6 +586,8 @@ procdump(void)
   struct proc *p;
   char *state;
   uint pc[10];
+    int allocatedPages;
+    int pagedOutAmount;
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->state == UNUSED)
@@ -523,7 +596,10 @@ procdump(void)
       state = states[p->state];
     else
       state = "???";
-    cprintf("%d %s %s", p->pid, state, p->name);
+  allocatedPages = PGROUNDUP(p->sz)/PGSIZE;
+  pagedOutAmount = getPagedOutAmout(p);
+  cprintf("%d %s %d %d %d %d %s", p->pid, state, allocatedPages,
+          pagedOutAmount,p->faultCounter , p->countOfPagedOut ,p->name);
     if(p->state == SLEEPING){
       getcallerpcs((uint*)p->context->ebp+2, pc);
       for(i=0; i<10 && pc[i] != 0; i++)
@@ -531,4 +607,5 @@ procdump(void)
     }
     cprintf("\n");
   }
+    cprintf("%d/%d free pages in the system\n",getFreePages(),getTotalPages());
 }
